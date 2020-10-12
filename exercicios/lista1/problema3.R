@@ -494,3 +494,5 @@ s11212 <- lp(direction = "min",
 
 s11212
 s11212$solution
+
+# Bound
