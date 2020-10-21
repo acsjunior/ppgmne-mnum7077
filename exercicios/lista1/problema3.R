@@ -12,14 +12,11 @@ Z = c(3,4,3)
 
 r <- c(3,2,2,
        2,5,3,
-       2,1,2,
-       1,0,0,
-       0,1,0,
-       0,0,1)
+       2,1,2)
 
 const_matrix <- matrix(r, ncol = length(Z), byrow = T)
-const_direct <- c(">=", ">=", ">=", ">=", ">=", ">=")
-const_rhs <- c(13, 15, 9, 0, 0, 0)
+const_direct <- c(">=", ">=", ">=")
+const_rhs <- c(13, 15, 9)
 
 si <- lp(direction = "min",
          objective.in = Z,
@@ -180,7 +177,7 @@ s14$solution
 # Z = 16.63636
 # x1 = 2.4545455
 # x2 = 0.8181818
-# x3 = 1
+# x3 = 2
 
 # Necessário resolver os problemas com as seguintes restrições (na próxima camada)
 # x2 = 0 (s1.4.1)

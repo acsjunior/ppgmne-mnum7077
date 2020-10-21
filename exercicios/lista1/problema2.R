@@ -13,15 +13,11 @@ Z = c(7,9,1,6)
 r <- c(
   8,2,4,2,
   4,8,2,0,
-  7,0,6,2,
-  1,0,0,0,
-  0,1,0,0,
-  0,0,1,0,
-  0,0,0,1
-)
+  7,0,6,2)
+
 const_matrix <- matrix(r, ncol = length(Z), byrow = T)
-const_direct <- c("<=", "<=", "<=", ">=", ">=", ">=", ">=")
-const_rhs <- c(16,20,11,0,0,0,0)
+const_direct <- c("<=", "<=", "<=")
+const_rhs <- c(16,20,11)
 
 
 si <- lp(direction = "max",
@@ -299,7 +295,6 @@ s132 <- lp(direction = "max",
 
 s132
 s132$solution
-
 # Valor de Z inferior ao da solução bound
 
 

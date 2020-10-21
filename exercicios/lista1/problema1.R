@@ -9,17 +9,13 @@ Z = c(1,5,9,5)
 # 7x1 + 8x2 + 18x3 + 3x4 <= 44
 # x1, x2, x3, x4 >= 0 e inteiras
 
-ra <- c(1,3,9,6)
-rb <- c(6,6,0,7)
-rc <- c(7,8,18,3)
-rd <- c(1,0,0,0)
-re <- c(0,1,0,0)
-rf <- c(0,0,1,0)
-rg <- c(0,0,0,1)
+r <- c(1,3,9,6,
+       6,6,0,7,
+       7,8,18,3)
 
-const_matrix <- matrix(c(ra,rb,rc,rd,re,rf,rg), ncol = length(Z), byrow = T)
-const_direct <- c("<=", "<=", "<=", ">=", ">=", ">=", ">=")
-const_rhs <- c(16,19,44,0,0,0,0)
+const_matrix <- matrix(r, ncol = length(Z), byrow = T)
+const_direct <- c("<=", "<=", "<=")
+const_rhs <- c(16,19,44)
 
 
 si <- lp(direction = "max",
@@ -31,6 +27,11 @@ si <- lp(direction = "max",
 
 si
 si$solution
+# Z = 20
+# x1 = 1
+# x2 = 2
+# x3 = 1
+# x4 = 0
 
 # ------------------------------------------------------------------------------
 # Camada 0
@@ -82,16 +83,14 @@ s11 <- lp(direction = "max",
 s11
 s11$solution
 # Z = 22
-# x1 = 0.1666667
+# x1 = 0
 # x2 = 3
-# x3 = 0.7592593
+# x3 = 0.78
 # x4 = 0
 
 # Necessário resolver os problemas com as seguintes restrições (na próxima camada)
-# x1 = 0 (s1.1.1)
-# x1 >= 1 (s1.1.2)
-# x3 = 0 (s1.1.3)
-# x3 >= 1 (s1.1.4)
+# x3 = 0 (s1.1.3) ############### altera índice para (s1.1.1)
+# x3 >= 1 (s1.1.4) ############# altera índice para (s1.1.2)
 
 
 
@@ -185,72 +184,6 @@ s14$solution
 
 # ------------------------------------------------------------------------------
 # Camada 2
-
-
-# Solução 1.1.1
-
-# Incluir a restrição:
-# x1 = 0
-
-r111 <- c(1,0,0,0)
-d111 <- "="
-rhs111 <- 0
-
-const_matrix111 <- rbind(const_matrix11, r111)
-const_direct111 <- append(const_direct11, d111)
-const_rhs111 <- append(const_rhs11, rhs111)
-
-s111 <- lp(direction = "max",
-         objective.in = Z,
-         const.mat = const_matrix111,
-         const.dir = const_direct111,
-         const.rhs = const_rhs111)
-
-s111
-s111$solution
-# Z = 22
-# x1 = 0
-# x2 = 3
-# x3 = 0.7777778
-# x4 = 0
-
-# Necessário resolver os problemas com as seguintes restrições (na próxima camada)
-# x3 = 0 (s1.1.1.1)
-# x3 >= 1 (s1.1.1.2)
-
-
-# Solução 1.1.2
-
-# Incluir a restrição:
-# x1 >= 1
-
-r112 <- c(1,0,0,0)
-d112 <- ">="
-rhs112 <- 1
-
-const_matrix112 <- rbind(const_matrix11, r112)
-const_direct112 <- append(const_direct11, d112)
-const_rhs112 <- append(const_rhs11, rhs112)
-
-s112 <- lp(direction = "max",
-           objective.in = Z,
-           const.mat = const_matrix112,
-           const.dir = const_direct112,
-           const.rhs = const_rhs112)
-
-s112
-s112$solution
-# Z = 20.33333
-# x1 = 1
-# x2 = 2.1666667
-# x3 = 0.9444444
-# x4 = 0
-
-# Necessário resolver os problemas com as seguintes restrições (na próxima camada)
-# x2 <= 2 (s1.1.2.1)
-# x2 >= 3 (s1.1.2.2)
-# x3 = 0 (s1.1.2.3)
-# x3 >= 1 (s1.2.2.4)
 
 
 # Solução 1.1.3
@@ -373,183 +306,6 @@ s142$solution
 # ------------------------------------------------------------------------------
 # Camada 3
 
-# Solução 1.1.1.1
-
-# Incluir a restrição:
-# x3 = 0
-
-r1111 <- c(0,0,1,0)
-d1111 <- "="
-rhs1111 <- 0
-
-const_matrix1111 <- rbind(const_matrix111, r1111)
-const_direct1111 <- append(const_direct111, d1111)
-const_rhs1111 <- append(const_rhs111, rhs1111)
-
-s1111 <- lp(direction = "max",
-           objective.in = Z,
-           const.mat = const_matrix1111,
-           const.dir = const_direct1111,
-           const.rhs = const_rhs1111)
-
-s1111
-s1111$solution
-# Z = 15.71429
-# x1 = 0
-# x2 = 3
-# x3 = 0
-# x4 = 0.1428571
-
-# Valor de Z inferior que o da solução ótima
-
-
-# Solução 1.1.1.2
-
-# Incluir a restrição:
-# x3 >= 1
-
-r1112 <- c(0,0,1,0)
-d1112 <- ">="
-rhs1112 <- 1
-
-const_matrix1112 <- rbind(const_matrix111, r1112)
-const_direct1112 <- append(const_direct111, d1112)
-const_rhs1112 <- append(const_rhs111, rhs1112)
-
-s1112 <- lp(direction = "max",
-            objective.in = Z,
-            const.mat = const_matrix1112,
-            const.dir = const_direct1112,
-            const.rhs = const_rhs1112)
-
-s1112
-s1112$solution
-# Z = 20.66667
-# x1 = 0
-# x2 = 2.333333
-# x3 = 1
-# x4 = 0
-
-# Necessário resolver os problemas com as seguintes restrições (na próxima camada)
-# x2 <= 2 (s1.1.1.2.1)
-# x2 >= 3 (s1.1.1.2.2)
-
-
-
-# Solução 1.1.2.1
-
-# Incluir a restrição:
-# x2 <= 2
-
-r1121 <- c(0,1,0,0)
-d1121 <- "<="
-rhs1121 <- 2
-
-const_matrix1121 <- rbind(const_matrix112, r1121)
-const_direct1121 <- append(const_direct112, d1121)
-const_rhs1121 <- append(const_rhs112, rhs1121)
-
-s1121 <- lp(direction = "max",
-           objective.in = Z,
-           const.mat = const_matrix1121,
-           const.dir = const_direct1121,
-           const.rhs = const_rhs1121)
-
-s1121
-s1121$solution
-# Z = 20
-# x1 = 1.1666667
-# x2 = 2
-# x3 = 0.9814815
-# x4 = 0
-
-# Na próxima camada Z será <= 20, portanto, a solução bound irá permanecer como a melhor
-
-
-
-# Solução 1.1.2.2
-
-# Incluir a restrição:
-# x2 >= 3
-
-r1122 <- c(0,1,0,0)
-d1122 <- ">="
-rhs1122 <- 3
-
-const_matrix1122 <- rbind(const_matrix112, r1122)
-const_direct1122 <- append(const_direct112, d1122)
-const_rhs1122 <- append(const_rhs112, rhs1122)
-
-s1122 <- lp(direction = "max",
-            objective.in = Z,
-            const.mat = const_matrix1122,
-            const.dir = const_direct1122,
-            const.rhs = const_rhs1122)
-
-s1122
-s1122$solution
-# Inviável
-
-
-# Solução 1.1.2.3
-
-# Incluir a restrição:
-# x3 = 0
-
-r1123 <- c(0,0,1,0)
-d1123 <- "="
-rhs1123 <- 0
-
-const_matrix1123 <- rbind(const_matrix112, r1123)
-const_direct1123 <- append(const_direct112, d1123)
-const_rhs1123 <- append(const_rhs112, rhs1123)
-
-s1123 <- lp(direction = "max",
-            objective.in = Z,
-            const.mat = const_matrix1123,
-            const.dir = const_direct1123,
-            const.rhs = const_rhs1123)
-
-s1123
-s1123$solution
-# Z = 11.83333
-# x1 = 1
-# x2 = 2.166667
-# x3 = 0
-# x4 = 0
-
-# Valor de Z inferior que o da solução ótima
-
-
-# Solução 1.1.2.4
-
-# Incluir a restrição:
-# x3 >= 1
-
-r1124 <- c(0,0,1,0)
-d1124 <- ">="
-rhs1124 <- 1
-
-const_matrix1124 <- rbind(const_matrix112, r1124)
-const_direct1124 <- append(const_direct112, d1124)
-const_rhs1124 <- append(const_rhs112, rhs1124)
-
-s1124 <- lp(direction = "max",
-            objective.in = Z,
-            const.mat = const_matrix1124,
-            const.dir = const_direct1124,
-            const.rhs = const_rhs1124)
-
-s1124
-s1124$solution
-# Z = 20
-# x1 = 1
-# x2 = 2
-# x3 = 1
-# x4 = 0
-
-# bound!
-
 
 # Solução 1.1.4.1
 
@@ -578,7 +334,8 @@ s1141$solution
 # x3 = 1.111111 
 # x4 = 0
 
-# Na próxima camada Z será <= 20, portanto, a solução bound irá permanecer como a melhor
+# Na próxima camada Z será <= 20, portanto, a solução bound irá permanecer como a melhor #########
+###########??????????????????###################
 
 
 # Solução 1.1.4.2
@@ -610,55 +367,57 @@ s1142$solution
 # Camada 4
 
 
-# Solução 1.1.1.2.1
+# Solução 1.1.4.1.1
 
 # Incluir a restrição:
-# x2 <= 2
+# x3 <= 1
 
-r11121 <- c(0,1,0,0)
-d11121 <- "<="
-rhs11121 <- 2
+r11411 <- c(0,0,1,0)
+d11411 <- "<="
+rhs11411 <- 1
 
-const_matrix11121 <- rbind(const_matrix1112, r11121)
-const_direct11121 <- append(const_direct1112, d11121)
-const_rhs11121 <- append(const_rhs1112, rhs11121)
+const_matrix11411 <- rbind(const_matrix1141, r11411)
+const_direct11411 <- append(const_direct1141, d11411)
+const_rhs11411 <- append(const_rhs1141, rhs11411)
 
-s11121 <- lp(direction = "max",
+s11411 <- lp(direction = "max",
             objective.in = Z,
-            const.mat = const_matrix11121,
-            const.dir = const_direct11121,
-            const.rhs = const_rhs11121)
+            const.mat = const_matrix11411,
+            const.dir = const_direct11411,
+            const.rhs = const_rhs11411)
 
-s11121
-s11121$solution
+s11411
+s11411$solution
 # Z = 20
-# x1 = 0
+# x1 = 1
 # x2 = 2
 # x3 = 1
 # x4 = 0
 
-# Na próxima camada Z será <= 20, portanto, a solução bound irá permanecer como a melhor
 
-
-# Solução 1.1.1.2.2
+# Solução 1.1.4.1.2
 
 # Incluir a restrição:
-# x2 >= 3
+# x3 >= 2
 
-r11122 <- c(0,1,0,0)
-d11122 <- ">="
-rhs11122 <- 3
+r11412 <- c(0,0,1,0)
+d11412 <- ">="
+rhs11412 <- 2
 
-const_matrix11122 <- rbind(const_matrix1112, r11122)
-const_direct11122 <- append(const_direct1112, d11122)
-const_rhs11122 <- append(const_rhs1112, rhs11122)
+const_matrix11412 <- rbind(const_matrix1141, r11412)
+const_direct11412 <- append(const_direct1141, d11412)
+const_rhs11412 <- append(const_rhs1141, rhs11412)
 
-s11122 <- lp(direction = "max",
+s11412 <- lp(direction = "max",
              objective.in = Z,
-             const.mat = const_matrix11122,
-             const.dir = const_direct11122,
-             const.rhs = const_rhs11122)
+             const.mat = const_matrix11412,
+             const.dir = const_direct11412,
+             const.rhs = const_rhs11412)
 
-s11122
-s11122$solution
-# Inviável
+s11412
+s11412$solution
+# Z = 20
+# x1 = 1
+# x2 = 2
+# x3 = 1
+# x4 = 0
