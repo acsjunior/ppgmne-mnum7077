@@ -1,0 +1,504 @@
+---
+title: "Lista 8 - Problema do Caixeiro Viajante"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(ggnet)
+library(GGally)
+library(network)
+library(combinat)
+```
+
+<br>
+
+#### Matriz de custos:
+
+```{r}
+Cij <- c(0,   1.1, 0,   0,   0,   0,   1.2,  0,   0,   0,   1.4, 0,   0,   0,   0,   0,   0,    0,   1.3,  0,
+         1.1, 0,   0,   0,   1.6, 0,   0,    0,   5,   0,   0,   0,   0,   0,   1.8, 0,   1.9,  2,   0,    1.7,
+         0,   0,   0,   0,   0,   2.3, 0,    2.1, 0,   5.4, 0,   0,   2.2, 0,   2.4, 0,   0,    0,   0,    0,
+         0,   0,   0,   0,   0,   2.6, 0,    0,   0,   0,   2.8, 2.7, 0,   0,   2.5, 0,   0,    0,   2.9,  0,
+         0,   1.6, 0,   0,   0,   0,   0,    0,   3.2, 0,   0,   0,   0,   3.3, 0,   0,   3.1,  9.6, 0,    0,
+         0,   0,   2.3, 2.6, 0,   0,   4.2,  0,   0,   3.7, 0,   3.8, 0,   0,   3.6, 0,   0,    0,   0,    0,
+         1.2, 0,   0,   0,   0,   4.2, 0,    0,   4.9, 0,   0,   3.9, 0,   0,   0,   0,   0,    9.7, 10.1, 0,
+         0,   0,   2.1, 0,   0,   0,   0,    0,   0,   4.5, 0,   4.6, 4.4, 0,   0,   0,   4.7,  0,   0,    0,
+         0,   5,   0,   0,   3.2, 0,   4.9,  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,    5.1, 0,    0,
+         0,   0,   5.4, 0,   0,   3.7, 0,    4.5, 0,   0,   0,   6.6, 5.5, 0,   0,   5.6, 0,    0,   0,    0,
+         1.4, 0,   0,   2.8, 0,   0,   0,    0,   0,   0,   0,   6,   0,   0,   0,   6.2, 0,    0,   6.1,  0,
+         0,   0,   0,   2.7, 0,   3.8, 3.9,  4.6, 0,   6.6, 6,   0,   0,   0,   0,   6.8, 0,    0,   0,    0,
+         0,   0,   2.2, 0,   0,   0,   0,    4.4, 0,   5.5, 0,   0,   0,   7.3, 0,   0,   7.4,  0,   0,    7.2,
+         0,   0,   0,   0,   3.3, 0,   0,    0,   0,   0,   0,   0,   7.3, 0,   0,   0,   7.7,  0,   0,    7.8,
+         0,   1.8, 2.4, 2.5, 0,   3.6, 0,    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,    8.3, 0,    8.4,
+         0,   0,   0,   0,   0,   0,   0,    0,   0,   5.6, 6.2, 6.8, 0,   0,   0,   0,   0,    0,   8.8,  0,
+         0,   1.9, 0,   0,   3.1, 0,   0,    4.7, 0,   0,   0,   0,   7.4, 7.7, 0,   0,   0,    0,   0,    9.2,
+         0,   2,   0,   0,   9.6, 0,   9.7,  0,   5.1, 0,   0,   0,   0,   0,   8.3, 0,   0,    0,   0,    0,
+         1.3, 0,   0,   2.9, 0,   0,   10.1, 0,   0,   0,   6.1, 0,   0,   0,   0,   8.8, 0,    0,   0,    0,
+         0,   1.7, 0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   7.2, 7.8, 8.4, 0,   9.2,  0,   0,    0)
+
+Cij <- matrix(Cij, ncol=20, byrow = TRUE)
+```
+
+<br>
+
+#### Grafo:
+
+```{r}
+set.seed(1986)
+net <- network(Cij, directed = F)
+network.vertex.names(net) <- c(1:20)
+ggnet2(net, label = T)
+```
+
+
+#### Algoritmo de Dijkstra:
+
+
+```{r}
+dijkstra <- function(no_inicial, no_final, C) {
+  
+  ### Parte 1: identificação das menores rotas, partindo do nó inicial, até cada um dos nós de destino
+  
+  # Vetores necessários
+  nos_avaliados <- rep(FALSE, nrow(C))
+  todos_os_nos <- 1:nrow(C)
+  custos_atualizados <- rep(0, nrow(C))
+
+  # Define o nó em avaliação
+  no_em_avaliacao <- no_inicial
+
+  # Inicialização
+  menores_caminhos_cij <- c()
+  menores_caminhos_i <- c()
+  menores_caminhos_j <- c()
+  nos_avaliados[no_em_avaliacao] <- TRUE
+
+  while(sum(nos_avaliados) < nrow(C)) { # Enquanto todos os nós não tiverem sido avaliados...
+    
+    custos <- c() # Armazena os custos (cij) das ligaçãos em cada iteração
+    origens <- c() # Armazena as origens (i) das ligações em cada iteração
+    destinos <- c() # Arazena os destinos (j) das ligações em cada iteração
+    
+    for(i in todos_os_nos[nos_avaliados]) { # Iteração em todos os nós avaliados ou em avaliação
+      
+      for(j in todos_os_nos[!nos_avaliados]) { # Iteração em todos os nós que não tenham sido avaliados ainda
+        
+        dij <- C[i,j] 
+        
+        if(dij > 0) { # Se houver conexão entre i e j...
+          
+          # Armazena o cij, i e j
+          custos <- append(custos, dij + custos_atualizados[i])
+          origens <- append(origens, i)
+          destinos <- append(destinos, j)
+        }
+      }
+    }
+    
+    # Ao término da avaliação de cada possível destino, identifica o menor custo
+    # e armazena cij, i e j nos vetores finais
+    min_idx <- which.min(custos)
+    menores_caminhos_cij <- append(menores_caminhos_cij, custos[min_idx])
+    menores_caminhos_i <- append(menores_caminhos_i, origens[min_idx])
+    menores_caminhos_j <- append(menores_caminhos_j, destinos[min_idx])
+    
+    # O nó de destino que representa o menor custo, se torna o próximo nó em avaliação
+    no_em_avaliacao <- destinos[min_idx]
+    
+    # Atualiza os custos do novo nó em atualização
+    custos_atualizados[no_em_avaliacao] <- custos_atualizados[no_em_avaliacao] + custos[min_idx]
+    
+    # Atualiza o vetor de nós avaliados e efetua uma nova iteração
+    nos_avaliados[no_em_avaliacao] <- TRUE
+  }
+  
+  # Monta um data frame com i, j e cij
+  df_completo <- data.frame(i = menores_caminhos_i,
+                            j = menores_caminhos_j,
+                            c = menores_caminhos_cij)
+  
+  df_completo$rota_rev <- NA
+
+  ### Parte 2: Montagem do caminho, partindo do nó inicial até o nó final
+  
+  # Inicializa a rota reversa
+  caminho_rev <- 1
+  
+  # Identifica a posição do nó final no data frame completo
+  rota_indice <- match(no_final, df_completo$j)
+  
+  # Atualiza a rota no df_completo
+  df_completo[rota_indice, "rota_rev"] <- caminho_rev
+  
+  
+  while(!is.na(rota_indice)) {
+    # Localiza a linha do df cuja a origem do nó atual é o destino
+    # Portanto, atualiza o índice
+    origem_atual <- df_completo$i[rota_indice]
+    rota_indice <- match(origem_atual, df_completo$j)
+    
+    # Atualiza a rota
+    caminho_rev <- caminho_rev + 1
+    df_completo$rota_rev[rota_indice] <- caminho_rev
+    
+  }
+  
+  # Elimina quem não faz parte da rota
+  df_rota <- df_completo[!is.na(df_completo$rota_rev),]
+
+  # Ordena o df
+  df_rota <- df_rota[order(-df_rota$rota_rev), c("i", "j", "c")]
+  colnames(df_rota) <- c("Origem", "Destino", "Custo acumulado")
+  rownames(df_rota) <- 1:nrow(df_rota)
+  
+  return(df_rota)
+  
+}
+```
+
+<br>
+
+#### Algoritmo de Floyd:
+
+```{r}
+floyd <- function(no_origem, no_destino, Cij, labels=NULL, print=TRUE) {
+  
+  if(!is.null(labels)) {
+    colnames(Cij) <- labels
+    rownames(Cij) <- labels
+  }
+  
+  # Transforma em infinito todos os zeros que não estejam na diagonal principal
+  Cij[Cij == 0] <- Inf
+  diag(Cij) <- 0
+  
+  
+  # Inicialista a matriz de trajetos
+  Tij <- Cij
+  for(i in 1:nrow(Tij)) {
+    Tij[i,] <- i
+  }
+  
+  # Carrega os índices da matriz de custo
+  idx <- 1:nrow(Cij)
+  
+  
+  # Inicia o algoritmo de Floyd
+  for(k in idx) {
+    
+    idx_sem_k <- idx[idx != k] # Carrega os índices sem k
+    
+    for(i in idx_sem_k) {
+      
+      if(i != k) {
+        
+        dik <- Cij[i,k]
+        if(dik != Inf) {
+          
+          for(j in idx_sem_k) {
+            
+            if(j != k) {
+              
+              dkj <- Cij[k,j]
+              if(dkj != Inf) {
+                
+                dij <- Cij[i,j]
+                Cij[i,j] <- min(c(dij, (dkj + dik)))
+                if((dik + dkj) < dij) {
+                  
+                  Tij[i,j] <- Tij[k,j]
+                }
+              } 
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  if(print) {
+    print("Matriz de custos:")
+    print(Cij)
+  }
+  
+  ### Parte 2: Recuperação do trajeto
+  
+  # Lida com as labels do grafo:
+  if(!is.null(labels)) {
+    no_orig_idx <- match(no_origem, labels)
+    no_dest_idx <- match(no_destino, labels)
+  } else {
+    no_orig_idx <- no_origem
+    no_dest_idx <- no_destino
+  }
+  
+
+  # Inclui o destino final no vetor de trajeto reverso
+  trajeto_reverso_idx <- no_dest_idx
+  
+  # Parte da origem, verificando cada destino. Enquanto origem e destino forem diferentes...
+  while(no_dest_idx != no_orig_idx) {
+    no_dest_idx <- Tij[no_orig_idx, no_dest_idx] # Atualiza o destino
+    trajeto_reverso_idx <- append(trajeto_reverso_idx, no_dest_idx) # Adiciona o novo destino no vetor de trajeto reverso
+  }
+    
+  trajeto_idx <- rev(trajeto_reverso_idx) # Reverte a ordem do vetor
+  
+  # Lida com as labels do grafo
+  if(!is.null(labels)) {
+    trajeto <- labels[trajeto_idx]
+  } else {
+    trajeto <- trajeto_idx
+  }
+  
+  # Exibe o trajeto e o custo
+  if(print) {
+    print(paste0("Menor caminho entre ", no_origem, " e ", no_destino, ":"))
+    print(trajeto)
+    print(paste("Custo:", Cij[match(no_origem, labels), match(no_destino, labels)]))
+  }
+  
+  return(list(trajeto, Cij))
+}
+```
+
+<br>
+
+#### Algoritmo Savings
+
+```{r}
+savings <- function(Cij, deposito, labels) {
+  d <- match(deposito, labels) # depósito
+  
+  nos <- 1:nrow(Cij)
+  nos <- nos[nos != d] # demais nós
+  
+  
+  # Cria a matriz de savings
+  origens <- c()
+  destinos <- c()
+  for(i in 1:nrow(Cij)) {
+    if(i != d) {
+      for(j in 1:nrow(Cij)) {
+        dij <- Cij[i,j]
+        if(dij > 0) {
+          origens <- append(origens, c(i,j))
+          destinos <- append(destinos, c(j,i))
+        }
+      }
+    }
+  }
+  
+  df_savings <- data.frame(i = origens,
+                           j = destinos)
+  
+  df_savings$cid <- NA
+  df_savings$cdj <- NA
+  df_savings$cij <- NA
+  
+  
+  # Calcula cid, cdj, cij
+  for(idx in 1:nrow(df_savings)) {
+    i <- df_savings$i[idx]
+    j <- df_savings$j[idx]
+    df_savings$cid[idx] <- Cij[i, d]
+    df_savings$cdj[idx] <- Cij[d, j]
+    df_savings$cij[idx] <- Cij[i, j]
+  }
+  
+  
+  # Calcula o saving
+  df_savings$sij <- with(df_savings, cid + cdj - cij)
+  
+  
+  # Ordena df_savings para facilitar as próximas etapas 
+  df_savings <- df_savings[order(df_savings$sij, decreasing = T),]
+  row.names(df_savings) <- 1:nrow(df_savings)
+  
+  
+  # Cria vetor de nós que ja fecharam ciclo
+  nos_ciclo_fechado <- c()
+
+
+  # Cria vetor de verificacao de nós
+  nos_verificados <- rep(FALSE, length(nos))
+  
+  
+  # Cria o vetor de nós não verificados
+  nos_nao_verificados <- nos[!nos_verificados]
+  
+ 
+   # Cria o vetor com a rota final
+  rota_final_i <- c()
+  rota_final_j <- c()
+  
+  
+  # Inicializa identificando o maior saving da tabela
+  df_temp <- head(df_savings,1)
+  
+
+  while(nrow(df_temp != 0)) {
+    
+    # Extrai origem e destino do maior saving da tabela e inclui na rota final
+    rota_final_i <- append(rota_final_i, df_temp$i[1])
+    rota_final_j <- append(rota_final_j, df_temp$j[1])
+    
+    # Atualiza o vetor de nós que já fecharam ciclo
+    nos_ciclo_fechado <- append(nos_ciclo_fechado, intersect(rota_final_i, rota_final_j))
+    
+    
+    # Atualiza o vetor de nos verificados
+    verificados <- unique(c(rota_final_i, rota_final_j))
+    verificados <- match(verificados, nos)
+    nos_verificados[verificados] <- TRUE
+    
+    
+    # Atualiza os nós não verificados
+    nos_nao_verificados <- nos[(!nos_verificados)]
+    
+    
+    # Identifica os maiores savings, partindo dos nós não verificados para rot_final_i
+    # ou partindo de rota_final_j para os vetores não verificados
+    # antes elimina os nós que já fecharam ciclo
+    df_temp <- df_savings[!df_savings$i %in% nos_ciclo_fechado,]
+    df_temp <- df_temp[!df_temp$j %in% nos_ciclo_fechado,]
+    df_temp <- head(df_temp[(df_temp$i %in% nos_nao_verificados & df_temp$j %in% rota_final_i) |
+                       (df_temp$i %in% rota_final_j & df_temp$j %in% nos_nao_verificados),],1)
+    
+  }
+  
+  # Define com quem o deposito faz par na entrada e na saida
+  # Retira da análise os nos que já fecharam ciclo
+  destino_d <- rota_final_i[!rota_final_i %in% nos_ciclo_fechado]
+  origem_d <- rota_final_j[!rota_final_j %in% nos_ciclo_fechado]
+  
+  rota_final_i <- append(rota_final_i, c(d, origem_d))
+  rota_final_j <- append(rota_final_j, c(destino_d, d))
+  
+  # Início do processo de ordenação da rota
+  idx_i <- match(d, rota_final_i)
+  i <- d
+  j <- rota_final_j[idx_i]
+  
+  
+  # Cria o vetor para receber a rota ordenada
+  rota_ordenada_i <- c()
+  rota_ordenada_j <- c()
+  
+
+  while(length(rota_ordenada_j) < length(rota_final_j)) {
+    
+    rota_ordenada_i <- append(rota_ordenada_i, i)
+    rota_ordenada_j <- append(rota_ordenada_j, j)
+  
+    idx_i <- match(j, rota_final_i)
+  
+    i <- rota_final_i[idx_i]
+    j <- rota_final_j[idx_i]
+    
+  }
+  
+  rota_ordenada_i <- labels[rota_ordenada_i]
+  rota_ordenada_j <- labels[rota_ordenada_j]
+  
+  df_rota <- data.frame(Origem = rota_ordenada_i,
+                        Destino = rota_ordenada_j)
+  
+  return <- df_rota
+  
+}
+```
+
+<br>
+
+#### 1-a) Encontre, através do algoritmo de Dijkstra, o menor caminho entre os pontos 14 e 16:
+
+```{r}
+df_rota <- dijkstra(no_inicial=14, no_final=16, C=Cij)
+print(df_rota)
+
+
+nos_df_rota <- unique(c(df_rota$Origem, df_rota$Destino))
+
+obter_cores <- function(n_nos, nos_rota, cor_padrao, cor_rota) {
+  out <- rep(cor_padrao, n_nos)
+  for(i in 1:n_nos) {
+    if(i %in% nos_rota) {
+      out[i] <- out[i] <- cor_rota
+    }
+  }
+  return(out)
+}
+cores_nos <- obter_cores(nrow(Cij), nos_df_rota, "gray", "tomato")
+
+set.seed(1986)
+ggnet2(net, label = T, color=cores_nos)
+```
+
+<br>
+
+#### 1-b) Encontre o caminho mínimo, pelo algoritmo de Floyd, entre os pontos 2 e 8, utilizando o sub-grafo formado pelos pontos 2, 3, 6, 8, 15 e 20.
+
+```{r}
+
+# Construindo o sub-grafo:
+nos_sub <- c(2, 3, 6, 8, 15, 20)
+Cij_sub <- Cij[nos_sub, nos_sub]
+Cij_sub
+
+set.seed(10)
+net_sub <- network(Cij_sub, directed = F)
+network.vertex.names(net_sub) <- nos_sub
+ggnet2(net_sub, label = T)
+
+trajeto <- floyd(no_origem=2, no_destino=8, Cij=Cij_sub, labels=nos_sub)[[1]]
+
+cores_nos <- c()
+for(no in nos_sub) {
+  if(no %in% trajeto) {
+    cores_nos <- append(cores_nos, "tomato")
+  } else {
+    cores_nos <- append(cores_nos, "gray")
+  }
+}
+
+set.seed(10)
+ggnet2(net_sub, label = T, color=cores_nos)
+```
+
+
+<br>
+
+#### 2-a) Resolver o problema do caixeiro viajante pelo algoritmo Savings de Clark e Wright, para o sub-grafo 4, 6, 10, 11, 12, 16, 19.
+
+```{r}
+# Construindo o sub-grafo:
+nos_sub2 <- c(4,6,10,11,12,16,19)
+Cij_sub2 <- Cij[nos_sub2, nos_sub2]
+Cij_sub2
+
+set.seed(10)
+net_sub2 <- network(Cij_sub2, directed = F)
+network.vertex.names(net_sub2) <- nos_sub2
+ggnet2(net_sub2, label = T)
+```
+```{r}
+# Aplicando antes o algoritmo de Floyd para obter o grafo completo
+Cij_sub2_floyd <- floyd(no_origem=4, no_destino=19, Cij=Cij_sub2, labels=nos_sub2, print=FALSE)[[2]]
+
+set.seed(10)
+net_sub2_floyd <- network(Cij_sub2_floyd, directed = F)
+ggnet2(net_sub2_floyd, label = T)
+```
+
+
+```{r}
+# Algoritmo de savings considerando o nó 12 como depósito
+
+df_rota2_floyd <- savings(Cij = Cij_sub2_floyd, deposito=12, labels=nos_sub2)
+print(df_rota2_floyd)
+```
