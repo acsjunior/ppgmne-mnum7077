@@ -1,5 +1,7 @@
 ---
 title: "Lista 8 - Problema do Caixeiro Viajante"
+author: "Antonio C. da Silva Júnior"
+date: "`r format(Sys.time(), '%d/%m/%Y')`"
 output: html_document
 ---
 
@@ -11,7 +13,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggnet)
 library(GGally)
 library(network)
-library(combinat)
 ```
 
 <br>
@@ -165,8 +166,7 @@ dijkstra <- function(no_inicial, no_final, C) {
 #### Algoritmo de Floyd:
 
 ```{r}
-floyd <- function(no_origem, no_destino, Cij, labels=NULL, print=TRUE) {
-  
+floyd_matrizes <- function(Cij, labels=NULL) {
   if(!is.null(labels)) {
     colnames(Cij) <- labels
     rownames(Cij) <- labels
@@ -220,14 +220,15 @@ floyd <- function(no_origem, no_destino, Cij, labels=NULL, print=TRUE) {
     }
   }
   
-  if(print) {
-    print("Matriz de custos:")
-    print(Cij)
-  }
+# Retorna as matrizes de custo de de trajetos
+  out <- list(Cij, Tij)
+  return(out)
   
-  ### Parte 2: Recuperação do trajeto
+}
+
+floyd_trajeto <- function(no_origem, no_destino, Cij, Tij, labels=NULL) {
   
-  # Lida com as labels do grafo:
+    # Lida com as labels do grafo:
   if(!is.null(labels)) {
     no_orig_idx <- match(no_origem, labels)
     no_dest_idx <- match(no_destino, labels)
@@ -256,14 +257,15 @@ floyd <- function(no_origem, no_destino, Cij, labels=NULL, print=TRUE) {
   }
   
   # Exibe o trajeto e o custo
-  if(print) {
-    print(paste0("Menor caminho entre ", no_origem, " e ", no_destino, ":"))
-    print(trajeto)
-    print(paste("Custo:", Cij[match(no_origem, labels), match(no_destino, labels)]))
-  }
+  print(paste0("Menor caminho entre ", no_origem, " e ", no_destino, ":"))
+  print(trajeto)
+  print(paste("Custo:", Cij[match(no_origem, labels), match(no_destino, labels)]))
   
-  return(list(trajeto, Cij))
+  # Retorna o trajeto
+  return(trajeto)
+  
 }
+
 ```
 
 <br>
@@ -450,12 +452,13 @@ nos_sub <- c(2, 3, 6, 8, 15, 20)
 Cij_sub <- Cij[nos_sub, nos_sub]
 Cij_sub
 
-set.seed(10)
-net_sub <- network(Cij_sub, directed = F)
-network.vertex.names(net_sub) <- nos_sub
-ggnet2(net_sub, label = T)
+# Matrizes de custo e trajeto:
+lst_matrizes <- floyd_matrizes(Cij=Cij_sub, labels=nos_sub)
+Cij_sub_floyd <- lst_matrizes[[1]]
+Tij_sub_floyd <- lst_matrizes[[2]]
 
-trajeto <- floyd(no_origem=2, no_destino=8, Cij=Cij_sub, labels=nos_sub)[[1]]
+# Recuperação do trajeto:
+trajeto <- floyd_trajeto(no_origem=2, no_destino=8, Cij=Cij_sub_floyd, Tij=Tij_sub_floyd, labels=nos_sub)
 
 cores_nos <- c()
 for(no in nos_sub) {
@@ -467,6 +470,8 @@ for(no in nos_sub) {
 }
 
 set.seed(10)
+net_sub <- network(Cij_sub, directed = F)
+network.vertex.names(net_sub) <- nos_sub
 ggnet2(net_sub, label = T, color=cores_nos)
 ```
 
@@ -488,17 +493,17 @@ ggnet2(net_sub2, label = T)
 ```
 ```{r}
 # Aplicando antes o algoritmo de Floyd para obter o grafo completo
-Cij_sub2_floyd <- floyd(no_origem=4, no_destino=19, Cij=Cij_sub2, labels=nos_sub2, print=FALSE)[[2]]
 
-set.seed(10)
-net_sub2_floyd <- network(Cij_sub2_floyd, directed = F)
-ggnet2(net_sub2_floyd, label = T)
+# Matrizes de custo e trajeto:
+lst_matrizes <- floyd_matrizes(Cij=Cij_sub2, labels=nos_sub2)
+Cij_sub2_floyd <- lst_matrizes[[1]]
+Tij_sub2_floyd <- lst_matrizes[[2]]
+
 ```
 
 
 ```{r}
-# Algoritmo de savings considerando o nó 12 como depósito
-
+# Algoritmo savings considerando o nó 12 como depósito
 df_rota2_floyd <- savings(Cij = Cij_sub2_floyd, deposito=12, labels=nos_sub2)
 print(df_rota2_floyd)
 ```
