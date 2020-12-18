@@ -1,0 +1,160 @@
+---
+title: "Lista de Exercícios 7"
+author: "Antonio C. da Silva Júnior"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(kableExtra)
+```
+
+
+```{r}
+df <- read.csv("tempos.csv", sep=";", encoding = "UTF-16")
+df <- df %>%
+  filter(metodo != "Variante do Branch and Bound")
+
+df$tempo_prep = as.numeric(str_replace(df$tempo_prep, ",", "."))
+df$tempo_solv = as.numeric(str_replace(df$tempo_solv, ",", "."))
+df$tempo_total = as.numeric(str_replace(df$tempo_total, ",", "."))
+df$custo_final = as.numeric(str_replace(df$custo_final, ",", "."))
+```
+
+<br>
+
+# Análise dos resultados
+
+<br>
+
+## Primeiras impressões
+
+<br>
+
+Considerando a soma do tempo de execução nos três exercícios, foi observado que as heurísticas de inserção são extremamente mais rápidas com relação aos demais métodos, mesmo nos problemas com maiores quantidades de nós.
+
+```{r}
+tempo_metodo <- df %>%
+  group_by(metodo) %>%
+  summarise(tempo = round(sum(tempo_total),4)) %>%
+  arrange(desc(tempo))
+
+tempo_metodo %>%
+  kable(col.names = c("Método", "Tempo (s)"),
+        caption = "Tempo total por método") %>%
+  kable_styling("hover", full_width=F)
+```
+
+```{r}
+tempo_metodo_nos <- df %>%
+  group_by(metodo, qtd_nos) %>%
+  summarise(tempo = round(sum(tempo_total),4)) %>%
+  arrange(desc(tempo))
+
+tempo_metodo_nos %>%
+  kable(col.names = c("Método", "Nós", "Tempo (s)"),
+        caption = "Tempo total por método e número de nós") %>%
+  kable_styling("hover", full_width=F)
+```
+
+<b>Importante:</b>
+
+- O tempo considerado é a média do tempo (em segundos) calculado em 100 execuções para o problema de 4 nós, 50 execuções para o problema de 10 nós e 10 execuções para o problema de 20 nós.
+
+Entre as heurísticas de inserção, foi observado que o método da inserção do mais distânte, em média, foi o que mais se aproximou dos resultados obtidos através das restrições de sub-rota de Dantzig e MTZ. 
+
+```{r}
+objetivo_metodo <- df %>%
+  group_by(metodo) %>%
+  summarise(objetivo = round(mean(custo_final),4)) %>%
+  arrange(objetivo)
+
+objetivo_metodo %>%
+  kable(col.names = c("Método", "Função objetivo (média)"),
+        caption = "Valor médio da função objetivo por método") %>%
+  kable_styling("hover", full_width=F)
+```
+
+```{r}
+metodo_no_fo <- df %>%
+  select(metodo, qtd_nos, custo_final) %>%
+  arrange(custo_final)
+
+metodo_no_fo %>%
+  filter(qtd_nos == 4) %>%
+  kable(col.names = c("Método", "Nós", "Função objetivo"),
+        caption = "Valor da função objetivo por método no problema de 4 nós") %>%
+  kable_styling("hover", full_width=F)
+
+metodo_no_fo %>%
+  filter(qtd_nos == 10) %>%
+  kable(col.names = c("Método", "Nós", "Função objetivo"),
+        caption = "Valor da função objetivo por método no problema de 10 nós") %>%
+  kable_styling("hover", full_width=F)
+
+metodo_no_fo %>%
+  filter(qtd_nos == 20) %>%
+  kable(col.names = c("Método", "Nós", "Função objetivo"),
+        caption = "Tempo de execução Dantzig x MTZ") %>%
+  kable_styling("hover", full_width=F)
+```
+
+<br>
+
+## Comparação Dantzig e MTZ
+
+<br>
+
+Ao comparar o tempo de execução entre os métodos de Dantzig e MTZ, foi observado que no problema menor, o tempo de execução entre os métodos não apresentou variação significativa, no entanto, ao aumentar o número de nós, o tempo de execução pelo método de Dantzig aumenta consideravalmente.
+
+<br>
+```{r}
+dantzig_mtz <- df %>%
+  filter(metodo %in% c("Restrições de sub-rota de Dantzig", "Restrições de sub-rota MTZ")) %>%
+  group_by(metodo, qtd_nos) %>%
+  summarise(tempo = sum(tempo_total)) %>%
+  arrange(tempo) %>%
+  pivot_wider(names_from = metodo, values_from = tempo)
+
+dantzig_mtz$Variacao <- paste(round(((dantzig_mtz$`Restrições de sub-rota de Dantzig` - dantzig_mtz$`Restrições de sub-rota MTZ`) / dantzig_mtz$`Restrições de sub-rota de Dantzig`) * 100,2),"%")
+
+dantzig_mtz %>%
+  kable(col.names = c("Nós", "Tempo MTZ", "Tempo Dantzig", "Variação"),
+        caption = "Variação do tempo de execução pelo método de Dantzig com relação ao MTZ") %>%
+  kable_styling("hover", full_width=F)
+```
+
+<br>
+
+## Comparação geral
+
+<br>
+
+```{r}
+heuristicas <- df %>%
+  group_by(metodo, qtd_nos) %>%
+  summarise(objetivo = mean(custo_final)) %>%
+  arrange(objetivo) %>%
+  pivot_wider(names_from = metodo, values_from = objetivo)
+
+heuristicas %>%
+  kable(col.names = c("Nós", "Mais distante", "Mais próximo", "Econômica", "Dantzig", "MTZ"),
+        caption = "Função objetivo por método e número de nós") %>%
+  kable_styling("hover", full_width=F)
+```
+
+<br>
+
+## Considerações finais
+
+<br>
+
+Através da análise ficou nítido que a aplicação das restrições de eliminação de sub-rota de Dantizig se torna inviável já com um número razoável de pontos. Inclusive foi realizada tentativa de resolver um problema com 30 pontos, mas diante do hardware disponível, não foi possível concluir. Portanto, entre Dantzig e MTZ, a segunda opção é a melhor opção em praticamente todos os cenários, uma vez que é mais simples de implementar computacionalmente e performa melhor com relação a Dantzig. 
+
+Quanto às heurísticas de inserção, a experiência no desenvolvimento dos algoritmos até a aplicação deixou evidente a simplicidade e a velocidade dos algoritmos e, embora nos exercícios realizados somente no problema de 4 nós foi possível chegar à solução ótima, ficou evidente que estes métodos podem ser excelentes alternativas diante de problemas extremamente grandes.
+
+Por fim, por motivos técnicos não foi possível aplicar o método da variante do Branch and Bound em todos os problemas, por isso a análise em questão não considerou esta forma de resolução do problema do caixeiro viajante, mas na experiência obtida na tentativa de desenvolver o algoritmo, foi possível notar que em problemas maiores pode ser uma alternativa mais performática com relação ao método das restrições de sub-rota MTZ. 
